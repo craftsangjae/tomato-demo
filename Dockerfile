@@ -4,7 +4,7 @@ WORKDIR /app
 
 COPY .streamlit/ /app/.streamlit/
 COPY src/ /app/src/
-COPY app.py poetry.toml poetry.lock pyproject.toml README.md /app/
+COPY app.py poetry.lock pyproject.toml README.md /app/
 
 RUN pip install poetry && poetry install
 
