@@ -1,0 +1,24 @@
+[tool.poetry]
+name = "tomato-demo"
+version = "0.1.0"
+description = ""
+authors = ["craftsangjae <craftsangjae@gmail.com>"]
+readme = "README.md"
+packages = [{ include = "app.py" },{include = "src/"}]
+
+[tool.poetry.dependencies]
+python = "^3.12,<3.14"
+streamlit = "^1.41.0"
+requests = "^2.32.3"
+xgboost = "^2.1.3"
+pandas = "^2.2.3"
+torch = "^2.5.1"
+scikit-learn = "1.5.2"
+
+
+[tool.poetry.group.dev.dependencies]
+watchdog = "^6.0.0"
+
+[build-system]
+requires = ["poetry-core"]
+build-backend = "poetry.core.masonry.api"

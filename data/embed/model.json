@@ -1,0 +1,6 @@
+{
+  "num_steps": 168,
+  "num_features": 3,
+  "num_hiddens": 64,
+  "num_embeddings": 12
+}
