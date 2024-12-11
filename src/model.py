@@ -2,10 +2,6 @@ import torch
 import torch.nn as nn
 import torch.nn.functional as F
 import math
-import json
-import os
-import xgboost as xgb
-from typing import Dict
 
 
 class ConvVAE(nn.Module):
@@ -110,45 +106,3 @@ class ConvVAE(nn.Module):
         recon_loss = F.mse_loss(x_hat, x)
         kl_loss = - torch.mean(torch.sum(1 + logvar - mu ** 2 - torch.exp(logvar), dim=1))
         return recon_loss, kl_loss
-
-
-def load_embed_model(model_dir: str) -> ConvVAE:
-    """ 모델 불러오기
-    """
-    with open(os.path.join(model_dir, 'model.json'), 'r') as f:
-        config = json.load(f)
-
-    model = ConvVAE(
-        num_steps=config['num_steps'],
-        num_features=config['num_features'],
-        num_hiddens=config['num_hiddens'],
-        num_embeddings=config['num_embeddings']
-    )
-
-    model_path = os.path.join(model_dir, 'model.pt')
-    model.load_state_dict(torch.load(model_path, weights_only=True))
-    model.eval()
-    return model
-
-
-def load_regression_models(model_dir: str) -> Dict[str,xgb.XGBRegressor]:
-    """ XGBRegressor 불러오기
-    """
-    length_model = xgb.XGBRegressor()
-    length_model.load_model(os.path.join(model_dir, "초장.ubj"))
-
-    fruit_model = xgb.XGBRegressor()
-    fruit_model.load_model(os.path.join(model_dir, "착과수.ubj"))
-
-    harvest_model = xgb.XGBRegressor()
-    harvest_model.load_model(os.path.join(model_dir, "수확수.ubj"))
-
-    weight_model = xgb.XGBRegressor()
-    weight_model.load_model(os.path.join(model_dir, "평균과중.ubj"))
-
-    return {
-        "length": length_model,
-        "fruit": fruit_model,
-        "harvest": harvest_model,
-        "weight": weight_model
-    }

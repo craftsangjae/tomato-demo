@@ -1,57 +1,13 @@
 import streamlit as st
 import pandas as pd
-from src.dataset import embed_timeseries_data
-from src.model import load_embed_model, load_regression_models
-from datetime import timedelta
-import numpy as np
-
-# 시계열 임베딩 모델
-EMBEDDING_MODEL = load_embed_model("data/embed/")
-# 예측 모델
-REGRESSION_MODELS = load_regression_models("data/regression")
+from src.predictor import GrowthPredictor, PlantStat
 
 
-def predict_output(
-        length:float,
-        num_fruit:float,
-        num_harvest:float,
-        weight:float,
-        avg_weight:float,
-        uploaded_file
-):
-    df = pd.read_csv(uploaded_file)
-    timeseries_data = embed_timeseries_data(df, EMBEDDING_MODEL)
-
-    outputs = [(timeseries_data[0][0], length, num_fruit, num_harvest, weight)]
-    for start_dt, embed_value in timeseries_data:
-        # ['초장', '착과수', '누적수확수', '평균 과중', '적심']
-        inputs = np.concatenate([
-            np.array([length, num_fruit, num_harvest, avg_weight, False]),
-            embed_value
-        ])[None]
-
-        diff_length = REGRESSION_MODELS['length'].predict(inputs)[0]
-        diff_fruit = REGRESSION_MODELS['fruit'].predict(inputs)[0]
-        diff_harvest = REGRESSION_MODELS['harvest'].predict(inputs)[0]
-        diff_weight = REGRESSION_MODELS['weight'].predict(inputs)[0]
-
-        length += diff_length if diff_length > 0 else 0
-        num_fruit += diff_fruit if diff_fruit > 0 else 0
-        num_harvest += diff_harvest if diff_harvest > 0 else 0
-
-        # 중량 누계
-        weight += diff_weight * diff_harvest if diff_weight > 0 and diff_harvest > 0 else 0
-        avg_weight = weight / num_harvest if num_harvest > 0 else 0.0
-
-        outputs.append((start_dt + timedelta(days=7), length, num_fruit, num_harvest, weight))
-    output_df = pd.DataFrame(outputs, columns=["날짜", "초장", "착과수", "누적수확수", "누적수확중량"])
-    return output_df.set_index('날짜')
+# TODO: 현재는 Local 파일로 예측하도록 작성. 추후에는 서버로 전송하여 예측하도록 수정 필요
+predictor = GrowthPredictor("data/")
 
 
-st.set_page_config(
-    page_title="완숙토마토 성장 예측 모델",
-    layout="wide"
-)
+st.set_page_config(page_title="완숙토마토 성장 예측 모델", layout="wide")
 
 st.title("완숙토마토 성장 예측 모델")
 
@@ -76,7 +32,10 @@ with st.form("input_form"):
 with st.container():
     st.subheader("예측 결과")
     if submitted and uploaded_file is not None:
-        output_df = predict_output(length, num_fruit, num_harvest, weight, avg_weight, uploaded_file)
+        stat = PlantStat(length=length, num_fruit=num_fruit, num_harvest=num_harvest, weight=weight)
+
+        output_df = predictor.predict(stat, uploaded_file)
+
         length_df = output_df['초장']
         fruit_df = output_df['착과수']
         harvest_df = output_df['누적수확수']
@@ -89,7 +48,7 @@ with st.container():
 
     column1, column2, column3, column4 = st.columns(4)
     with column1:
-        st.line_chart(x_label="날짜", y_label="초장 길이(cm)",data=length_df)
+        st.line_chart(x_label="날짜", y_label="초장 길이(cm)", data=length_df)
     with column2:
         st.line_chart(x_label="날짜", y_label="착과수", data=fruit_df)
     with column3:
